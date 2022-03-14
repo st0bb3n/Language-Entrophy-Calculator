@@ -1,0 +1,127 @@
+###############################################
+# Credits to UPD EEE for some parts of the Code
+###############################################
+
+###############################################
+# Import useful packages for convenience
+###############################################
+
+import math                       # For useful math functions like log of 2
+import matplotlib.pyplot as plt   # For plotting later
+import requests                   # For extracting data saved on git 
+
+###############################################
+# Calculating information. The input small x is some probability value.
+# 0 <= x <= 1
+# If you go beyond the input range, it will report the errors
+###############################################
+
+def info(x):
+    if(x == 0):
+        return 0
+    if(x == 1):
+        return 0
+    elif(x < 0):
+        print("Error! Can't have negative probabilities")
+        return 
+    elif(x > 1):
+        print("Error! Can't have probabilities more than 1")
+    else:
+        return -1*(math.log(x,2))
+
+###############################################
+# Calculating entropy, the input X is a list
+# For example  X = [0.2, 0.3, 0.4, 0.5]
+# Returns 2.0142 bits
+###############################################
+
+def entropy(X):
+    ent = 0
+    for i in X:
+        ent += i*info(i)
+    return ent
+
+###############################################
+# Importing data
+###############################################
+
+eng_data = requests.get('https://raw.githubusercontent.com/rgantonio/CoE161---FileDump/main/eng_clean.txt').text
+ger_data = requests.get('https://raw.githubusercontent.com/rgantonio/CoE161---FileDump/main/ger_clean.txt').text
+fre_data = requests.get('https://raw.githubusercontent.com/rgantonio/CoE161---FileDump/main/fre_clean.txt').text
+tag_data = requests.get('https://raw.githubusercontent.com/rgantonio/CoE161---FileDump/main/tag_clean.txt').text
+
+###############################################
+# Working block-entropy function
+###############################################
+
+def get_block_entropy(data,N):
+    s = list(data) #Turns .txt to a list of 1 element each
+    checker = [] #to be filled with s WITHOUT repetition
+    probs = [] #list of probabilities to be used in info(x)
+    subList = [s[n:n+N] for n in range(0, len(s), N)] #groups the element in s in N-blocks
+    
+
+    if '\n' in (subList[-1]): #omits the block if it does not satisfy N
+      subList.pop() 
+
+    sub_len = len(subList)
+
+    for i in range(0, len(subList)):
+      if subList[i] not in checker: #repetition check
+        a = subList.count(subList[i])/sub_len #calculates probability
+        probs.append(a) #collects probability
+        checker.append(subList[i]) #update checker
+  
+    return entropy(probs)/N
+    
+###############################################
+
+eng_sample = get_block_entropy(eng_data,1)
+ger_sample = get_block_entropy(ger_data,1)
+fre_sample = get_block_entropy(fre_data,1)
+tag_sample = get_block_entropy(tag_data,1)
+
+###############################################
+# Initializing empty lists
+###############################################
+
+block_eng = []
+block_ger = []
+block_fre = []
+block_tag = []
+
+###############################################
+# TODO: Feel free to change the number of N-grams
+###############################################
+
+points = 12
+
+###############################################
+# Retrieving data
+###############################################
+
+for i in range(points):
+    block_eng.append(get_block_entropy(eng_data,(i+1)))
+    block_ger.append(get_block_entropy(ger_data,(i+1)))
+    block_fre.append(get_block_entropy(fre_data,(i+1)))
+    block_tag.append(get_block_entropy(tag_data,(i+1)))
+
+###############################################
+# Create x-axis
+###############################################
+
+x = [(i + 1) for i in range(points)]
+
+###############################################
+# Plotting
+###############################################
+
+plt.plot(x,block_eng, label = "English")
+plt.plot(x,block_ger, label = "German")
+plt.plot(x,block_fre, label = "French")
+plt.plot(x,block_tag, label = "Tagalog")
+plt.xlabel("block-gram")
+plt.ylabel("H(block-gram) bits for 1 letter")
+plt.legend()
+plt.show()
+  
